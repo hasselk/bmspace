@@ -1,8 +1,14 @@
 
+#region TODO
+#
 ## TODO: add Pack Full indication, Balancing State, cell alarms as binary instances instead of text warnings
 ##       -> balanceState1 & balanceState2 ; faultState ; control state  IN bms_getWarnInfo()
 ## TODO: use BMS & Pack (if available) serial number as id for mqtt & hass
 ## TODO: implement better MQTT disconnection handling
+## TODO: add power calculation and Charge/Discharge detection based an current/voltage because ac1in indicates only if there is higher voltage on the battery lines.
+## TODO: add possibility to modify settings / set mosfets
+#
+#endregion 
 
 import paho.mqtt.client as mqtt
 import socket
@@ -17,8 +23,7 @@ import atexit
 import sys
 import constants
 
-print("Starting up...")
-
+#region  check and read config Files
 config = {}
 
 if os.path.exists('/data/options.json'):
@@ -26,24 +31,26 @@ if os.path.exists('/data/options.json'):
     with open(r'/data/options.json') as file:
         config = json.load(file)
         print("Config: " + json.dumps(config))
-
 elif os.path.exists('config.yaml'):
     print("Loading config.yaml")
     with open(r'config.yaml') as file:
         config = yaml.load(file, Loader=yaml.FullLoader)['options']
-        
 else:
     sys.exit("No config file found")  
+#endregion 
 
-
+#region set initial parameters
 scan_interval = config['scan_interval']
+
 connection_type = config['connection_type']
 bms_serial = config['bms_serial']
 ha_discovery_enabled = config['mqtt_ha_discovery']
+
 code_running = True
 bms_connected = False
 mqtt_connected = False
 print_initial = True
+
 debug_output = config['debug_output']
 disc_payload = {}
 repub_discovery = 0
@@ -54,10 +61,13 @@ pack_sn = ''
 packs = 1
 cells = 13
 temps = 6
+#endregion 
 
-
+print("BMS PACE Starting up...")
 print("Connection Type: " + connection_type)
 
+
+#region MQTT Client connection
 def on_connect(client, userdata, flags, rc):
     print("MQTT connected with result code "+str(rc))
     client.will_set(config['mqtt_base_topic'] + "/availability","offline", qos=0, retain=False)
@@ -79,6 +89,7 @@ client.username_pw_set(username=config['mqtt_user'], password=config['mqtt_passw
 client.connect(config['mqtt_host'], config['mqtt_port'], 60)
 client.loop_start()
 time.sleep(2)
+#endregion
 
 def exit_handler():
     print("Script exiting")
@@ -87,6 +98,7 @@ def exit_handler():
 
 atexit.register(exit_handler)
 
+#region BMS functions
 def bms_connect(address, port):
 
     if connection_type == "Serial":
@@ -1084,6 +1096,7 @@ def bms_getWarnInfo(bms):
 
     return True,True
 
+#endregion
 
 print("Connecting to BMS...")
 bms,bms_connected = bms_connect(config['bms_ip'],config['bms_port'])
@@ -1102,13 +1115,14 @@ if success != True:
     quit()
 
 
-# Not used anymore
+# region Not used anymore
 # time.sleep(0.1)
 # success, data = bms_getPackNumber(bms)
 # if success == True:
 #     print("Batteries in pack: ", data)
 # else:
 #     print("Error retrieving number of batteries in pack")
+#endregion
 
 while code_running == True:
 
