@@ -1,4 +1,8 @@
 
+## TODO: add Pack Full indication, Balancing State, cell alarms as binary instances instead of text warnings
+##       -> balanceState1 & balanceState2 ; faultState ; control state  IN bms_getWarnInfo()
+## TODO: use BMS & Pack (if available) serial number as id for mqtt & hass
+## TODO: implement better MQTT disconnection handling
 
 import paho.mqtt.client as mqtt
 import socket
